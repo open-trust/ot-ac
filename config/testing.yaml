@@ -1,0 +1,16 @@
+addr: ":8080"
+cert_file:
+key_file:
+logger:
+  level: debug
+trusted_proxy: false
+service_endpoints:
+- http://ot.example.com/ac
+dgraph:
+  insecure: true
+  grpc_endpoint: localhost:9080
+open_trust:
+  otid: "otid:ot.example.com:svc:ot.ac"
+  domain_public_keys: []
+  private_keys:
+  - '{"kty":"EC","alg":"ES512","crv":"P-521","d":"AdXSdw87nB_NPVqNUHXe47BzofXghwlLxbpCbhw1ADh9F7AmxBEsgUnW_ynNEMvQPcJPcyEw1OkCK-_olsFkPdFQ","kid":"ySQYnCsV4cOZBxbHCv4E410k0gjTbi8WfJJwVkV6QqI","x":"AdtXGowadABABWC0FVolCYnRhiBEYdO6-bpyldNh1RrLVIDJJRJelA_O2UB9DyssCN8gLfJio3OdV8YH6uyfvOwb","y":"AX1Waed_878v_Y1JE2U3dLvAOIScuu_UVGUFZpQyB-hRTXMIQHTqEQw9os_Jcb491-0ZUANJZs_gne7srQ2yOCN6"}'
