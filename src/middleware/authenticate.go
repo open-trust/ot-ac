@@ -4,7 +4,7 @@ import (
 	"github.com/open-trust/ot-ac/src/bll"
 	"github.com/open-trust/ot-ac/src/conf"
 	"github.com/open-trust/ot-ac/src/logging"
-	"github.com/open-trust/ot-ac/src/schema"
+	"github.com/open-trust/ot-ac/src/tpl"
 	otgo "github.com/open-trust/ot-go-lib"
 	"github.com/teambition/gear"
 )
@@ -59,6 +59,7 @@ func VerifyTenant(ctx *gear.Context) error {
 	if err != nil {
 		return gear.ErrUnauthorized.WithMsgf("invalid tenant: %s", err.Error())
 	}
+	logging.AccessLogger.SetTo(ctx, "tenant", tenant.Tenant)
 	if tenant.Status < 0 {
 		return gear.ErrForbidden.WithMsgf("%s is forbidden", vid.ID.String())
 	}
@@ -80,12 +81,12 @@ func VidFromCtx(ctx *gear.Context) (*otgo.OTVID, error) {
 }
 
 // TenantFromCtx ...
-func TenantFromCtx(ctx *gear.Context) (*schema.Tenant, error) {
+func TenantFromCtx(ctx *gear.Context) (*tpl.Tenant, error) {
 	val, err := ctx.Any(tenantKey)
 	if err != nil {
 		return nil, err
 	}
-	tenant, ok := val.(*schema.Tenant)
+	tenant, ok := val.(*tpl.Tenant)
 	if !ok {
 		return nil, gear.ErrUnauthorized.WithMsg("tenant not exist")
 	}

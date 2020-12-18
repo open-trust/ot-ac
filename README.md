@@ -25,22 +25,22 @@ Open Trust Access Control service.
 类型
 
 type Target {
-  type: String
-  id: String
+  targetType: String
+  targetId: String
 }
 
 type Permission `Resource.Operation.Constraint`
 
 访问控制查询
 
-// 检查请求主体到指定管理单元有没有指定权限，如果未指定管理单元，则会检查请求主体能触达的所有管理单元
-CheckUnit(subject: String!, unit: Target = null, permission: Permission!)
+// 检查请求主体到指定管理单元有没有指定权限
+CheckUnit(subject: String!, unit: Target!, permission: Permission!)
 
 // 检查请求主体到指定范围约束有没有指定权限
 CheckScope(subject: String!, scope: Target!, permission: Permission!)
 
-// 检查请求主体通过 Scope 或 Unit-Object 的连接关系到指定资源对象有没有指定权限，如果 byUnitObject 为 true，则要求必须有 Unit-Object 的连接关系
-CheckObject(subject: String!, object: Target!, permission: Permission!, byUnitObject: Boolean = false)
+// 检查请求主体通过 Scope 或 Unit-Object 的连接关系到指定资源对象有没有指定权限，如果 ignoreScope 为 true，则要求必须有 Unit-Object 的连接关系
+CheckObject(subject: String!, object: Target!, permission: Permission!, ignoreScope: Boolean = false)
 
 // 列出请求主体到指定管理单元的符合 resource 的权限，如果未指定管理单元，则会查询请求主体能触达的所有管理单元，如果 resources 为空，则会列出所有触达的有效权限
 ListPermissionsByUnit(subject: String!, unit: Target = null, resources: [String])
@@ -49,17 +49,17 @@ ListPermissionsByUnit(subject: String!, unit: Target = null, resources: [String]
 ListPermissionsByScope(subject: String!, scope: Target!, resources: [String])
 
 // 列出请求主体到指定资源对象的符合 resource 的权限，如果 resources 为空，则会列出所有触达的有效权限
-ListPermissionsByObject(subject: String!, object: Target!, resources: [String], byUnitObject: Boolean = false)
+ListPermissionsByObject(subject: String!, object: Target!, resources: [String], ignoreScope: Boolean = false)
 
 // 列出请求主体参与的指定类型的管理单元
 ListUnits(subject: String!, targetType: String!)
 
 // 列出请求主体在指定资源对象中能触达的所有指定类型的子孙资源对象
 // depth 定义对 targetType 类型资源对象的递归查询深度，而不是指定 object 到 targetType 类型资源对象的深度，默认对 targetType 类型资源对象查到底
-ListObjects(subject: String!, object: Target!, permission: Permission!, targetType: String!, byUnitObject: Boolean = false, depth: Int = MaxInt)
+ListObjects(subject: String!, object: Target!, permission: Permission!, targetType: String!, ignoreScope: Boolean = false, depth: Int = MaxInt)
 
 // 根据关键词，在指定资源对象的子孙资源对象中，对请求主体能触达的所有指定类型的资源对象中进行搜索，term 为空不匹配任何资源对象
-SearchObjects(subject: String!, object: Target!, permission: Permission!, targetType: String!, term: String!, byUnitObject: Boolean = false)
+SearchObjects(subject: String!, object: Target!, permission: Permission!, targetType: String!, term: String!, ignoreScope: Boolean = false)
 
 Scope 范围约束
 // 创建范围约束
@@ -115,13 +115,13 @@ AssignScope(unit: Target!, scope: Target!)
 AssignObject(unit: Target!, object: Target!)
 
 // 清除管理单元与父级对象的关系
-ClearParent(unit: Target!, parent: Target!)
+RemoveParent(unit: Target!, parent: Target!)
 
 // 清除管理单元与范围约束的关系
-ClearScope(unit: Target!, scope: Target!)
+RemoveScope(unit: Target!, scope: Target!)
 
 // 清除管理单元与资源对象的关系
-ClearObject(unit: Target!, object: Target!)
+RemoveObject(unit: Target!, object: Target!)
 
 // 删除管理单元及其所有子孙管理单元和链接关系
 Delete(unit: Target!)
@@ -133,16 +133,16 @@ UpdateStatus(unit: Target!, status: Int!)
 AddSubjects(unit: Target!, subjects: [String]!)
 
 // 管理单元批量移除请求主体
-ClearSubjects(unit: Target!, subjects: [String]!)
+RemoveSubjects(unit: Target!, subjects: [String]!)
 
 // 给管理单元添加权限，权限必须预先存在
-UpdatePermissions(unit: Target!, permissions: [Permission])
+AddPermissions(unit: Target!, permissions: [Permission])
 
 // 覆盖管理单元的权限，权限必须预先存在，当 permissions 为空时会清空权限
-OverridePermissions(unit: Target!, permissions: [Permission])
+UpdatePermissions(unit: Target!, permissions: [Permission])
 
 // 移除管理单元的权限
-ClearPermissions(unit: Target!, permissions: [Permission])
+RemovePermissions(unit: Target!, permissions: [Permission])
 
 // 列出管理单元的指定目标类型的子级管理单元
 ListChildren(unit: Target!, targetType: String!)
@@ -168,9 +168,6 @@ Object 资源对象
 // 批量添加资源对象，当检测到将形成环时会返回 400 错误
 BatchAdd(objects: [Target]!, parent: Target = null, scope: Target = null)
 
-// 添加资源对象，并同时添加对应的管理单元和建立连接关系，当检测到将形成环时会返回 400 错误
-AddWithUnit(object: Target!, parent: Target = null, scope: Target = null)
-
 // 建立资源对象与父级对象的关系，当检测到将会形成环时会返回 400 错误
 AssignParent(object: Target!, parent: Target!)
 
@@ -178,10 +175,10 @@ AssignParent(object: Target!, parent: Target!)
 AssignScope(object: Target!, scope: Target!)
 
 // 清除资源对象与父级对象的关系
-ClearParent(object: Target!, parent: Target!)
+RemoveParent(object: Target!, parent: Target!)
 
 // 清除资源对象与范围约束的关系
-ClearScope(object: Target!, scope: Target!)
+RemoveScope(object: Target!, scope: Target!)
 
 // 删除资源对象及其所有子孙资源对象和链接关系
 Delete(object: Target!)
@@ -190,13 +187,13 @@ Delete(object: Target!)
 UpdateTerms(object: Target!, terms: [String]!)
 
 // 给资源对象添加可透传的权限，权限必须预先存在
-UpdatePermissions(object: Target!, permissions: [Permission])
+AddPermissions(object: Target!, permissions: [Permission])
 
 // 覆盖资源对象可透传的权限，权限必须预先存在，当 permissions 为空时会清空权限
-OverridePermissions(object: Target!, permissions: [Permission])
+UpdatePermissions(object: Target!, permissions: [Permission])
 
 // 移除资源对象可透传的权限
-ClearPermissions(object: Target!, permissions: [Permission])
+RemovePermissions(object: Target!, permissions: [Permission])
 
 // 列出资源对象的指定目标类型的子级资源对象
 ListChildren(object: Target!, targetType: String!)

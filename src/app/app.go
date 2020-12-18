@@ -33,7 +33,7 @@ func New() *gear.App {
 		return gear.ParseError(err)
 	})
 	if app.Env() != "testing" {
-		app.UseHandler(logging.AccessLogger)
+		app.Use(logging.WithAccessLogger)
 	}
 
 	err := util.DigInvoke(func(routers []*gear.Router) error {

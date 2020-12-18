@@ -1,9 +1,10 @@
 package api
 
 import (
-	"strconv"
-
 	"github.com/open-trust/ot-ac/src/bll"
+	"github.com/open-trust/ot-ac/src/middleware"
+	"github.com/open-trust/ot-ac/src/model"
+	"github.com/open-trust/ot-ac/src/tpl"
 	"github.com/teambition/gear"
 )
 
@@ -12,86 +13,151 @@ type Unit struct {
 	blls *bll.Blls
 }
 
-// Serve ..
-func (a *Unit) Serve(ctx *gear.Context) error {
-	action := ctx.Param("action")
-	switch action {
-	case "BatchAdd":
-		return a.BatchAdd(ctx)
-	case "AssignParent":
-		return a.AssignParent(ctx)
-	case "AssignScope":
-		return a.AssignScope(ctx)
-	case "AssignObject":
-		return a.AssignObject(ctx)
-	case "ClearParent":
-		return a.ClearParent(ctx)
-	case "ClearScope":
-		return a.ClearScope(ctx)
-	case "ClearObject":
-		return a.ClearObject(ctx)
-	case "Delete":
-		return a.Delete(ctx)
-	case "UpdateStatus":
-		return a.UpdateStatus(ctx)
-	case "AddSubjects":
-		return a.AddSubjects(ctx)
-	case "ClearSubjects":
-		return a.ClearSubjects(ctx)
-	case "UpdatePermissions":
-		return a.UpdatePermissions(ctx)
-	case "OverridePermissions":
-		return a.OverridePermissions(ctx)
-	case "ClearPermissions":
-		return a.ClearPermissions(ctx)
-	case "ListChildren":
-		return a.ListChildren(ctx)
-	case "ListDescendant":
-		return a.ListDescendant(ctx)
-	case "ListPermissions":
-		return a.ListPermissions(ctx)
-	case "ListSubjects":
-		return a.ListSubjects(ctx)
-	case "ListDescendantSubjects":
-		return a.ListDescendantSubjects(ctx)
-	case "GetDAG":
-		return a.GetDAG(ctx)
-	}
-	return gear.ErrBadRequest.WithMsgf("unknown action %s", strconv.Quote(action))
-}
-
 // BatchAdd 批量添加管理单元，当检测到将形成环时会返回 400 错误
 func (a *Unit) BatchAdd(ctx *gear.Context) error {
-	return nil
+	input := tpl.TargetBatchAddInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.BatchAdd(model.ContextWithPrefer(ctx), *tenant, input.Targets, input.Parent, input.Scope)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
+}
+
+// AddFromOrg ...
+func (a *Unit) AddFromOrg(ctx *gear.Context) error {
+	input := tpl.UnitAddFromOrgInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AddFromOrg(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Org, input.Parent, input.Scope)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
+}
+
+// AddFromOU ...
+func (a *Unit) AddFromOU(ctx *gear.Context) error {
+	input := tpl.UnitAddFromOUInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AddFromOU(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Org, input.OU, input.Parent, input.Scope)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
+}
+
+// AddFromMembers ...
+func (a *Unit) AddFromMembers(ctx *gear.Context) error {
+	input := tpl.UnitAddFromMembersInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AddFromMembers(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Org, input.Subjects, input.Parent, input.Scope)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // AssignParent 建立管理单元与父级管理单元的关系，当检测到将形成环时会返回 400 错误
 func (a *Unit) AssignParent(ctx *gear.Context) error {
-	return nil
+	input := tpl.UnitAssignParentInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AssignParent(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Parent)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // AssignScope 建立管理单元与范围约束的关系
 func (a *Unit) AssignScope(ctx *gear.Context) error {
-	return nil
+	input := tpl.UnitAssignScopeInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AssignScope(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Scope)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // AssignObject 建立管理单元与资源对象的关系
 func (a *Unit) AssignObject(ctx *gear.Context) error {
+	input := tpl.UnitAssignObjectInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AssignObject(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Object)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
+}
+
+// RemoveParent 清除管理单元与父级对象的关系
+func (a *Unit) RemoveParent(ctx *gear.Context) error {
 	return nil
 }
 
-// ClearParent 清除管理单元与父级对象的关系
-func (a *Unit) ClearParent(ctx *gear.Context) error {
+// RemoveScope 清除管理单元与范围约束的关系
+func (a *Unit) RemoveScope(ctx *gear.Context) error {
 	return nil
 }
 
-// ClearScope 清除管理单元与范围约束的关系
-func (a *Unit) ClearScope(ctx *gear.Context) error {
-	return nil
-}
-
-// ClearObject 清除管理单元与资源对象的关系
-func (a *Unit) ClearObject(ctx *gear.Context) error {
+// RemoveObject 清除管理单元与资源对象的关系
+func (a *Unit) RemoveObject(ctx *gear.Context) error {
 	return nil
 }
 
@@ -107,26 +173,54 @@ func (a *Unit) UpdateStatus(ctx *gear.Context) error {
 
 // AddSubjects 管理单元批量添加请求主体，当请求主体不存在时会自动创建
 func (a *Unit) AddSubjects(ctx *gear.Context) error {
+	input := tpl.UnitAddSubjectsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AddSubjects(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Subjects)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
+}
+
+// RemoveSubjects 管理单元批量移除请求主体
+func (a *Unit) RemoveSubjects(ctx *gear.Context) error {
 	return nil
 }
 
-// ClearSubjects 管理单元批量移除请求主体
-func (a *Unit) ClearSubjects(ctx *gear.Context) error {
-	return nil
+// AddPermissions 给管理单元添加权限，权限必须预先存在
+func (a *Unit) AddPermissions(ctx *gear.Context) error {
+	input := tpl.UnitAddPermissionsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+
+	tenant, err := middleware.TenantFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := a.blls.Unit.AddPermissions(model.ContextWithPrefer(ctx), *tenant, input.Target, input.Permissions)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
-// UpdatePermissions 给管理单元添加权限，权限必须预先存在
+// UpdatePermissions 覆盖管理单元的权限，权限必须预先存在，当 permissions 为空时会清空权限
 func (a *Unit) UpdatePermissions(ctx *gear.Context) error {
 	return nil
 }
 
-// OverridePermissions 覆盖管理单元的权限，权限必须预先存在，当 permissions 为空时会清空权限
-func (a *Unit) OverridePermissions(ctx *gear.Context) error {
-	return nil
-}
-
-// ClearPermissions 移除管理单元的权限
-func (a *Unit) ClearPermissions(ctx *gear.Context) error {
+// RemovePermissions 移除管理单元的权限
+func (a *Unit) RemovePermissions(ctx *gear.Context) error {
 	return nil
 }
 

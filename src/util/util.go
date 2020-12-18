@@ -3,6 +3,8 @@ package util
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
+	"strconv"
 	"time"
 
 	"golang.org/x/crypto/blake2b"
@@ -39,4 +41,43 @@ func StringsHas(ss []string, filter func(s string) bool) bool {
 		}
 	}
 	return false
+}
+
+// StringsFilter ...
+func StringsFilter(ss []string, filter func(s string) bool) []string {
+	data := make([]string, 0, len(ss))
+	for _, s := range ss {
+		if filter(s) {
+			data = append(data, s)
+		}
+	}
+	return data
+}
+
+// FormatUID ...
+func FormatUID(uid string) string {
+	return fmt.Sprintf("<%s>", uid)
+}
+
+// FormatUIDs ...
+func FormatUIDs(uids []string) []string {
+	data := make([]string, len(uids))
+	for i, uid := range uids {
+		data[i] = fmt.Sprintf("<%s>", uid)
+	}
+	return data
+}
+
+// FormatStr ...
+func FormatStr(s string) string {
+	return strconv.Quote(s)
+}
+
+// FormatStrs ...
+func FormatStrs(ss []string) []string {
+	data := make([]string, len(ss))
+	for i, s := range ss {
+		data[i] = strconv.Quote(s)
+	}
+	return data
 }

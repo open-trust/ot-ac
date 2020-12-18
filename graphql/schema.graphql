@@ -17,34 +17,35 @@ type OTACOrg { # Organization
 type OTACOU { # Organization Unit
   id: ID!
   status: Int! @dgraph(pred: "OTAC.status")
-  unit: String! @search(by: [hash]) @dgraph(pred: "OTAC.OU")
-  organization: OTACOrg! @dgraph(pred: "OTAC.OU-Org")
-  parent: OTACOU @dgraph(pred: "OTAC.OU-P")
-  children: [OTACOU!] @dgraph(pred: "~OTAC.OU-P")
+  ou: String! @search(by: [hash]) @dgraph(pred: "OTAC.OU")
+  org: OTACOrg! @dgraph(pred: "OTAC.OU-Org")
+  parent: OTACOU @dgraph(pred: "OTAC.OU-OU")
+  children: [OTACOU!] @dgraph(pred: "~OTAC.OU-OU")
   members: [OTACMember!]! @dgraph(pred: "OTAC.OU-Ms")
   joinedUnits: [OTACUnit!]! @dgraph(pred: "~OTAC.U-OUs")
-  uk: String! @id @dgraph(pred: "OTAC.OU.UK")  # 联合索引 Base64(BLAKE2b.Sum256(organization, unit))
+  terms: String! @search(by: [term]) @dgraph(pred: "OTAC.OU.terms")
+  uk: String! @id @dgraph(pred: "OTAC.OU.UK")  # 联合索引 Base64(BLAKE2b.Sum256(organization, ou))
 }
 
 type OTACMember { # Organization Member
   id: ID!
   status: Int! @dgraph(pred: "OTAC.status")
-  subject: OTACSubject! @dgraph(pred: "OTAC.M-S") # With Facets @facets(kind: String, name: String, level: int))
-  organization: OTACOrg! @dgraph(pred: "OTAC.M-Org")
+  subject: OTACSubject! @dgraph(pred: "OTAC.M-S")
+  org: OTACOrg! @dgraph(pred: "OTAC.M-Org")
   joinedOU: [OTACOU!]! @dgraph(pred: "~OTAC.OU-Ms")
   joinedUnits: [OTACUnit!]! @dgraph(pred: "~OTAC.U-Ms")
+  terms: String! @search(by: [term]) @dgraph(pred: "OTAC.M.terms")
   uk: String! @id @dgraph(pred: "OTAC.M.UK")  # 联合索引 Base64(BLAKE2b.Sum256(organization, subject))
 }
 
 type OTACTenant { # Tenant
   id: ID!
   status: Int! @dgraph(pred: "OTAC.status")
-  otid: String! @id @search(by: [hash]) @dgraph(pred: "OTAC.T.OTID")
+  tenant: String! @id @search(by: [hash]) @dgraph(pred: "OTAC.T")
 }
 
 type OTACUnit { # Administrative Unit, 管理单元
   id: ID!
-  updated: Int! @search @dgraph(pred: "OTAC.updated")
   status: Int! @dgraph(pred: "OTAC.status")
   tenant: OTACTenant! @dgraph(pred: "OTAC.U-T")
   targetId: String! @dgraph(pred: "OTAC.UId")
@@ -64,7 +65,6 @@ type OTACUnit { # Administrative Unit, 管理单元
 type OTACObject { # Object
   id: ID!
   tenant: OTACTenant! @dgraph(pred: "OTAC.O-T")
-  updated: Int! @search @dgraph(pred: "OTAC.updated")
   targetId: String! @dgraph(pred: "OTAC.OId")
   targetType: String! @search(by: [hash]) @dgraph(pred: "OTAC.OType")
   permissions: [OTACPermission!]! @dgraph(pred: "OTAC.O-Ps") # With Facets @facets

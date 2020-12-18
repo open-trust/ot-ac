@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/open-trust/ot-ac/src/model"
-	"github.com/open-trust/ot-ac/src/schema"
 	"github.com/open-trust/ot-ac/src/tpl"
 	otgo "github.com/open-trust/ot-go-lib"
 	"github.com/teambition/gear"
@@ -17,14 +16,14 @@ type Admin struct {
 
 // AddTenant 添加租户
 func (b *Admin) AddTenant(ctx context.Context, tenant otgo.OTID) (*tpl.SuccessResponseType, error) {
-	data := &schema.Tenant{
-		OTID:   tenant.String(),
+	ok, err := b.ms.Tenant.Add(ctx, tpl.Tenant{
+		Tenant: tenant.String(),
 		Status: 0,
-	}
-	if err := b.ms.Tenant.Add(ctx, data); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
-	return &tpl.SuccessResponseType{Result: data}, nil
+	return &tpl.SuccessResponseType{Result: ok}, nil
 }
 
 // UpdateTenantStatus 更新租户，-1 表示停用
@@ -33,8 +32,8 @@ func (b *Admin) UpdateTenantStatus(ctx context.Context, tenant otgo.OTID, status
 	if err != nil {
 		return nil, err
 	}
-	data := &schema.Tenant{
-		OTID:   tenant.String(),
+	data := tpl.Tenant{
+		Tenant: tenant.String(),
 		Status: status,
 	}
 
@@ -63,14 +62,14 @@ func (b *Admin) DeleteTenant(ctx context.Context, tenant otgo.OTID) (*tpl.Succes
 }
 
 // ListTenants 列出系统中的租户
-func (b *Admin) ListTenants(ctx context.Context, pg *tpl.Pagination) (*tpl.SuccessResponseType, error) {
+func (b *Admin) ListTenants(ctx context.Context, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
 	data, err := b.ms.Tenant.List(ctx, pg.PageSize, pg.Skip, pg.PageToken)
 	if err != nil {
 		return nil, err
 	}
-	res := &tpl.SuccessResponseType{Result: data, NextPageToken: ""}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
 	if len(data) >= pg.PageSize {
-		res.NextPageToken = data[len(data)-1].ID
+		res.NextToken = data[len(data)-1].UID
 	}
 	return res, nil
 }
@@ -85,9 +84,9 @@ func (b *Admin) BatchAddSubjects(ctx context.Context, subjects []string) (*tpl.S
 
 // UpdateSubjectStatus 更新请求主体，-1 表示停用
 func (b *Admin) UpdateSubjectStatus(ctx context.Context, subject string, status int) (*tpl.SuccessResponseType, error) {
-	data := &schema.Subject{
-		Subject: subject,
-		Status:  status,
+	data := tpl.Subject{
+		Sub:    subject,
+		Status: status,
 	}
 	if err := b.ms.Subject.Update(ctx, data); err != nil {
 		return nil, err
@@ -96,15 +95,15 @@ func (b *Admin) UpdateSubjectStatus(ctx context.Context, subject string, status 
 }
 
 // ListSubjects 列出系统中的请求主体
-func (b *Admin) ListSubjects(ctx context.Context, pg *tpl.Pagination) (
+func (b *Admin) ListSubjects(ctx context.Context, pg tpl.Pagination) (
 	*tpl.SuccessResponseType, error) {
 	data, err := b.ms.Subject.List(ctx, pg.PageSize, pg.Skip, pg.PageToken)
 	if err != nil {
 		return nil, err
 	}
-	res := &tpl.SuccessResponseType{Result: data, NextPageToken: ""}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
 	if len(data) >= pg.PageSize {
-		res.NextPageToken = data[len(data)-1].ID
+		res.NextToken = data[len(data)-1].UID
 	}
 	return res, nil
 }

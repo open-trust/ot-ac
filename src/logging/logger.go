@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -19,6 +20,12 @@ func init() {
 		Logger.Err(err)
 	}
 }
+
+type contextKey int
+
+const (
+	logKey contextKey = iota
+)
 
 // AccessLogger is used for access log
 var AccessLogger = gearLogging.New(os.Stdout)
@@ -62,4 +69,21 @@ func Debugf(format string, args ...interface{}) {
 // FromCtx retrieve the Log instance for the AccessLogger.
 func FromCtx(ctx *gear.Context) gearLogging.Log {
 	return AccessLogger.FromCtx(ctx)
+}
+
+// WithAccessLogger ...
+func WithAccessLogger(ctx *gear.Context) error {
+	if err := AccessLogger.Serve(ctx); err != nil {
+		return err
+	}
+	log := AccessLogger.FromCtx(ctx)
+	ctx.WithContext(context.WithValue(ctx.Context(), logKey, log))
+	return nil
+}
+
+// SetKV ...
+func SetKV(ctx context.Context, key string, val interface{}) {
+	if v := ctx.Value(logKey); v != nil {
+		v.(gearLogging.Log)[key] = val
+	}
 }

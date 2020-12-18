@@ -61,6 +61,11 @@ github.com/mailgun/timetools v0.0.0-20141028012446-7e6055773c51/go.mod h1:RYmqHb
 github.com/mailgun/timetools v0.0.0-20170619190023-f3a7b8ffff47/go.mod h1:RYmqHbhWwIz3z9eVmQ2rx82rulEMG0t+Q1bzfc9DYN4=
 github.com/mailgun/ttlmap v0.0.0-20170619185759-c1c17f74874f/go.mod h1:8heskWJ5c0v5J9WH89ADhyal1DOZcayll8fSbhB+/9A=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
+github.com/open-trust/dag-go v0.1.0 h1:bUsAMpTNkCl5FtgU1ZnzYt88MtI7BT2X4CJ53jBtxm8=
+github.com/open-trust/dag-go v0.1.0/go.mod h1:vNo4PJ4+bHOwBKqO45ZMRwkhNvRd2XQAyh4lkPQRzE8=
+github.com/open-trust/dag-go v0.2.0/go.mod h1:vNo4PJ4+bHOwBKqO45ZMRwkhNvRd2XQAyh4lkPQRzE8=
+github.com/open-trust/dag-go v0.3.0 h1:lm5tBcdInRbQ3lVKBxBImr+TYgEPEpUTe53uxEs4gjc=
+github.com/open-trust/dag-go v0.3.0/go.mod h1:vNo4PJ4+bHOwBKqO45ZMRwkhNvRd2XQAyh4lkPQRzE8=
 github.com/open-trust/ot-go-lib v0.10.0 h1:mDsgTImqq2brf+5FfSHpWRzyHeyUe6FnLMcw0uxOa8A=
 github.com/open-trust/ot-go-lib v0.10.0/go.mod h1:4tN9Y8HkrmkQnBja7mdS5ZFfz0a0leiSQGOjtER+MN4=
 github.com/pelletier/go-toml v1.8.1/go.mod h1:T2/BmBdy8dvIRq1a/8aqjN41wvWlN4lrapLU/GW4pbc=

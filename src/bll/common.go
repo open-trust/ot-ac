@@ -12,25 +12,27 @@ func init() {
 
 // Blls ...
 type Blls struct {
-	Models     *model.Models
-	AC         *AC
-	Admin      *Admin
-	Object     *Object
-	Permission *Permission
-	Scope      *Scope
-	Unit       *Unit
+	Models       *model.Models
+	AC           *AC
+	Admin        *Admin
+	Object       *Object
+	Organization *Organization
+	Permission   *Permission
+	Scope        *Scope
+	Unit         *Unit
 }
 
 // NewBlls ...
 func NewBlls(models *model.Models) *Blls {
 	return &Blls{
-		Models:     models,
-		AC:         &AC{models},
-		Admin:      &Admin{models},
-		Object:     &Object{models},
-		Permission: &Permission{models},
-		Scope:      &Scope{models},
-		Unit:       &Unit{models},
+		Models:       models,
+		AC:           &AC{models},
+		Admin:        &Admin{models},
+		Object:       &Object{models},
+		Organization: &Organization{models},
+		Permission:   &Permission{models},
+		Scope:        &Scope{models},
+		Unit:         &Unit{models},
 	}
 }
 

@@ -14,12 +14,12 @@ type Admin struct {
 
 // AddTenant ...
 func (a *Admin) AddTenant(ctx *gear.Context) error {
-	input := &tpl.AddTenantInput{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.TenantAddInput{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 
-	res, err := a.blls.Admin.AddTenant(model.ContextWithPrefer(ctx), input.OTID)
+	res, err := a.blls.Admin.AddTenant(model.ContextWithPrefer(ctx), input.Tenant)
 	if err != nil {
 		return err
 	}
@@ -28,12 +28,12 @@ func (a *Admin) AddTenant(ctx *gear.Context) error {
 
 // UpdateTenantStatus ...
 func (a *Admin) UpdateTenantStatus(ctx *gear.Context) error {
-	input := &tpl.AddTenantInput{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.TenantAddInput{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 
-	res, err := a.blls.Admin.UpdateTenantStatus(model.ContextWithPrefer(ctx), input.OTID, input.Status)
+	res, err := a.blls.Admin.UpdateTenantStatus(model.ContextWithPrefer(ctx), input.Tenant, input.Status)
 	if err != nil {
 		return err
 	}
@@ -42,12 +42,12 @@ func (a *Admin) UpdateTenantStatus(ctx *gear.Context) error {
 
 // DeleteTenant ...
 func (a *Admin) DeleteTenant(ctx *gear.Context) error {
-	input := &tpl.AddTenantInput{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.TenantAddInput{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 
-	res, err := a.blls.Admin.DeleteTenant(model.ContextWithPrefer(ctx), input.OTID)
+	res, err := a.blls.Admin.DeleteTenant(model.ContextWithPrefer(ctx), input.Tenant)
 	if err != nil {
 		return err
 	}
@@ -56,8 +56,8 @@ func (a *Admin) DeleteTenant(ctx *gear.Context) error {
 
 // ListTenants ...
 func (a *Admin) ListTenants(ctx *gear.Context) error {
-	input := &tpl.Pagination{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.Pagination{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 	res, err := a.blls.Admin.ListTenants(ctx, input)
@@ -69,8 +69,8 @@ func (a *Admin) ListTenants(ctx *gear.Context) error {
 
 // BatchAddSubjects ...
 func (a *Admin) BatchAddSubjects(ctx *gear.Context) error {
-	input := &tpl.BatchAddSubjectsInput{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.SubjectsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 
@@ -83,12 +83,12 @@ func (a *Admin) BatchAddSubjects(ctx *gear.Context) error {
 
 // UpdateSubjectStatus ...
 func (a *Admin) UpdateSubjectStatus(ctx *gear.Context) error {
-	input := &tpl.UpdateSubjectInput{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.SubjectUpdateInput{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 
-	res, err := a.blls.Admin.UpdateSubjectStatus(model.ContextWithPrefer(ctx), input.Subject, input.Status)
+	res, err := a.blls.Admin.UpdateSubjectStatus(model.ContextWithPrefer(ctx), input.Sub, input.Status)
 	if err != nil {
 		return err
 	}
@@ -97,8 +97,8 @@ func (a *Admin) UpdateSubjectStatus(ctx *gear.Context) error {
 
 // ListSubjects ...
 func (a *Admin) ListSubjects(ctx *gear.Context) error {
-	input := &tpl.Pagination{}
-	if err := ctx.ParseBody(input); err != nil {
+	input := tpl.Pagination{}
+	if err := ctx.ParseBody(&input); err != nil {
 		return err
 	}
 	res, err := a.blls.Admin.ListSubjects(ctx, input)

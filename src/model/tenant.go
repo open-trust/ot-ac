@@ -3,11 +3,11 @@ package model
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/dgraph-io/dgo/v200/protos/api"
-	"github.com/open-trust/ot-ac/src/schema"
 	"github.com/open-trust/ot-ac/src/service/dgraph"
+	"github.com/open-trust/ot-ac/src/tpl"
+	"github.com/open-trust/ot-ac/src/util"
 	otgo "github.com/open-trust/ot-go-lib"
 )
 
@@ -17,30 +17,31 @@ type Tenant struct {
 }
 
 // Get ...
-func (m *Tenant) Get(ctx context.Context, tenant otgo.OTID) (*schema.Tenant, error) {
+func (m *Tenant) Get(ctx context.Context, tenant otgo.OTID) (*tpl.Tenant, error) {
+	res := tpl.Tenant{Tenant: tenant.String(), Status: -1}
 	q := fmt.Sprintf(`query {
-		result(func: eq(OTAC.T.OTID, %s), first: 1) {
-			id: uid
+		result(func: eq(OTAC.T, %s), first: 1) {
+			uid
 			status: OTAC.status
 		}
-	}`, strconv.Quote(tenant.String()))
-	res := &schema.Tenant{Status: -1}
-	if err := m.Model.Get(ctx, q, nil, res); err != nil {
+	}`, util.FormatStr(res.Tenant))
+
+	if err := m.Model.Get(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return &res, nil
 }
 
 // List ...
-func (m *Tenant) List(ctx context.Context, pageSize, skip int, uidToken string) ([]*schema.Tenant, error) {
+func (m *Tenant) List(ctx context.Context, pageSize, skip int, uidToken string) ([]tpl.Tenant, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.T.OTID), first: %d, offset: %d, after: <%s>) {
-			id: uid
+		result(func: has(OTAC.T), first: %d, offset: %d, after: %s) {
+			uid
+			tenant: OTAC.T
 			status: OTAC.status
-			tenant: OTAC.T.OTID
 		}
-	}`, pageSize, skip, uidToken)
-	res := make([]*schema.Tenant, 0, pageSize)
+	}`, pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Tenant, 0, pageSize)
 	if err := m.Model.List(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
@@ -48,10 +49,10 @@ func (m *Tenant) List(ctx context.Context, pageSize, skip int, uidToken string) 
 }
 
 // Add ...
-func (m *Tenant) Add(ctx context.Context, input *schema.Tenant) error {
+func (m *Tenant) Add(ctx context.Context, input tpl.Tenant) (bool, error) {
 	nq := &dgraph.Nquads{
-		UKkey: "OTAC.T.OTID",
-		UKval: input.OTID,
+		UKkey: "OTAC.T",
+		UKval: input.Tenant,
 		Type:  "OTACTenant",
 		KV: map[string]interface{}{
 			"OTAC.status": input.Status,
@@ -62,28 +63,28 @@ func (m *Tenant) Add(ctx context.Context, input *schema.Tenant) error {
 }
 
 // Update ...
-func (m *Tenant) Update(ctx context.Context, input *schema.Tenant) error {
+func (m *Tenant) Update(ctx context.Context, input tpl.Tenant) error {
 	update := &dgraph.Nquads{
-		UKkey: "OTAC.T.OTID",
-		UKval: input.OTID,
+		UKkey: "OTAC.T",
+		UKval: input.Tenant,
 		Type:  "OTACTenant",
 		KV: map[string]interface{}{
 			"OTAC.status": input.Status,
 		},
 	}
 
-	return m.Model.Update(ctx, update)
+	return m.Model.Update(ctx, update, "")
 }
 
 // Delete ...
 func (m *Tenant) Delete(ctx context.Context, tenant otgo.OTID) error {
 	q := fmt.Sprintf(`query {
-		tenantUid as result(func: eq(OTAC.T.OTID, %s), first: 1) @filter(lt(OTAC.status, 0))
-		objectUids as objects(func: has(OTAC.O-T)) @filter(uid_in(OTAC.O-T, uid(tenantUid)))
-		unitsUids as units(func: has(OTAC.U-T)) @filter(uid_in(OTAC.U-T, uid(tenantUid)))
-		permissionsUids as permissions(func: has(OTAC.P-T)) @filter(uid_in(OTAC.P-T, uid(tenantUid)))
-		scopesUids as scopes(func: has(OTAC.Sc-T)) @filter(uid_in(OTAC.Sc-T, uid(tenantUid)))
-	}`, strconv.Quote(tenant.String()))
+		tenantUid as var(func: eq(OTAC.T, %s), first: 1) @filter(lt(OTAC.status, 0))
+		objectUids as var(func: has(OTAC.O-T)) @filter(uid_in(OTAC.O-T, uid(tenantUid)))
+		unitsUids as var(func: has(OTAC.U-T)) @filter(uid_in(OTAC.U-T, uid(tenantUid)))
+		permissionsUids as var(func: has(OTAC.P-T)) @filter(uid_in(OTAC.P-T, uid(tenantUid)))
+		scopesUids as var(func: has(OTAC.Sc-T)) @filter(uid_in(OTAC.Sc-T, uid(tenantUid)))
+	}`, util.FormatStr(tenant.String()))
 	delTenant := &dgraph.Nquads{
 		ID: "uid(tenantUid)",
 		KV: map[string]interface{}{

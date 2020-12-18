@@ -3,10 +3,8 @@ package model
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/dgraph-io/dgo/v200/protos/api"
-	"github.com/open-trust/ot-ac/src/schema"
 	"github.com/open-trust/ot-ac/src/service/dgraph"
 	"github.com/open-trust/ot-ac/src/tpl"
 	"github.com/open-trust/ot-ac/src/util"
@@ -18,13 +16,13 @@ type Scope struct {
 }
 
 // Add 创建范围约束
-func (m *Scope) Add(ctx context.Context, tenant *schema.Tenant, input *schema.Scope) error {
+func (m *Scope) Add(ctx context.Context, tenant tpl.Tenant, input tpl.Scope) (bool, error) {
 	nq := &dgraph.Nquads{
 		UKkey: "OTAC.Sc.UK",
-		UKval: util.HashBase64(tenant.OTID, input.TargetType, input.TargetID),
+		UKval: util.HashBase64(tenant.Tenant, input.TargetType, input.TargetID),
 		Type:  "OTACScope",
 		KV: map[string]interface{}{
-			"OTAC.Sc-T":   fmt.Sprintf("<%s>", tenant.ID),
+			"OTAC.Sc-T":   util.FormatUID(tenant.UID),
 			"OTAC.status": input.Status,
 			"OTAC.ScId":   input.TargetID,
 			"OTAC.ScType": input.TargetType,
@@ -35,30 +33,30 @@ func (m *Scope) Add(ctx context.Context, tenant *schema.Tenant, input *schema.Sc
 }
 
 // UpdateStatus 更新范围约束的状态，-1 表示停用
-func (m *Scope) UpdateStatus(ctx context.Context, tenant *schema.Tenant, scope *tpl.Target, status int) error {
+func (m *Scope) UpdateStatus(ctx context.Context, tenant tpl.Tenant, scope tpl.Target, status int) error {
 	update := &dgraph.Nquads{
 		UKkey: "OTAC.Sc.UK",
-		UKval: util.HashBase64(tenant.OTID, scope.Type, scope.ID),
+		UKval: util.HashBase64(tenant.Tenant, scope.Type, scope.ID),
 		Type:  "OTACScope",
 		KV: map[string]interface{}{
 			"OTAC.status": status,
 		},
 	}
-	return m.Model.Update(ctx, update)
+	return m.Model.Update(ctx, update, "")
 }
 
 // List 列出该系统当前所有指定目标类型的范围约束
-func (m *Scope) List(ctx context.Context, tenant *schema.Tenant, targetType string,
-	pageSize, skip int, uidToken string) ([]*schema.Scope, error) {
+func (m *Scope) List(ctx context.Context, tenant tpl.Tenant, targetType string,
+	pageSize, skip int, uidToken string) ([]*tpl.Scope, error) {
 	q := fmt.Sprintf(`query {
-		result(func: eq(OTAC.ScType, %s), first: %d, offset: %d, after: <%s>) @filter(uid_in(OTAC.Sc-T, <%s>)) {
-			id: uid
+		result(func: eq(OTAC.ScType, %s), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.Sc-T, %s)) {
+			uid
 			status: OTAC.status
 			targetId: OTAC.ScId
 			targetType: OTAC.ScType
 		}
-	}`, strconv.Quote(targetType), pageSize, skip, uidToken, tenant.ID)
-	res := make([]*schema.Scope, 0, pageSize)
+	}`, util.FormatStr(targetType), pageSize, skip, util.FormatUID(uidToken), util.FormatUID(tenant.UID))
+	res := make([]*tpl.Scope, 0, pageSize)
 	if err := m.Model.List(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
@@ -66,18 +64,18 @@ func (m *Scope) List(ctx context.Context, tenant *schema.Tenant, targetType stri
 }
 
 // ListUnits 列出范围约束下指定目标类型的直属的管理单元
-func (m *Scope) ListUnits(ctx context.Context, tenant *schema.Tenant, scope *tpl.Target, targetType string,
-	pageSize, skip int, uidToken string) ([]*schema.Unit, error) {
+func (m *Scope) ListUnits(ctx context.Context, tenant tpl.Tenant, scope tpl.Target, targetType string,
+	pageSize, skip int, uidToken string) ([]*tpl.Unit, error) {
 	q := fmt.Sprintf(`query {
-		scopeUid as q(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, <%s>))
-		result(func: eq(OTAC.UType, %s), first: %d, offset: %d, after: <%s>) @filter(uid_in(OTAC.U-Scs, uid(scopeUid))) {
-			id: uid
+		scopeUid as var(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, %s))
+		result(func: eq(OTAC.UType, %s), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.U-Scs, uid(scopeUid))) {
+			uid
 			status: OTAC.status
 			targetId: OTAC.UId
 			targetType: OTAC.UType
 		}
-	}`, strconv.Quote(scope.ID), strconv.Quote(scope.Type), tenant.ID, strconv.Quote(targetType), pageSize, skip, uidToken)
-	res := make([]*schema.Unit, 0, pageSize)
+	}`, util.FormatStr(scope.ID), util.FormatStr(scope.Type), util.FormatUID(tenant.UID), util.FormatStr(targetType), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]*tpl.Unit, 0, pageSize)
 	if err := m.Model.List(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
@@ -85,18 +83,18 @@ func (m *Scope) ListUnits(ctx context.Context, tenant *schema.Tenant, scope *tpl
 }
 
 // ListObjects 列出范围约束下指定目标类型的直属的资源对象
-func (m *Scope) ListObjects(ctx context.Context, tenant *schema.Tenant, scope *tpl.Target, targetType string,
-	pageSize, skip int, uidToken string) ([]*schema.Object, error) {
+func (m *Scope) ListObjects(ctx context.Context, tenant tpl.Tenant, scope tpl.Target, targetType string,
+	pageSize, skip int, uidToken string) ([]*tpl.Object, error) {
 	q := fmt.Sprintf(`query {
-			scopeUid as q(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, <%s>))
-			result(func: eq(OTAC.OType, %s), first: %d, offset: %d, after: <%s>) @filter(uid_in(OTAC.O-Scs, uid(scopeUid))) {
-				id: uid
+			scopeUid as var(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, %s))
+			result(func: eq(OTAC.OType, %s), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.O-Scs, uid(scopeUid))) {
+				uid
 				status: OTAC.status
 				targetId: OTAC.OId
 				targetType: OTAC.OType
 			}
-		}`, strconv.Quote(scope.ID), strconv.Quote(scope.Type), tenant.ID, strconv.Quote(targetType), pageSize, skip, uidToken)
-	res := make([]*schema.Object, 0, pageSize)
+		}`, util.FormatStr(scope.ID), util.FormatStr(scope.Type), util.FormatUID(tenant.UID), util.FormatStr(targetType), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]*tpl.Object, 0, pageSize)
 	if err := m.Model.List(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
@@ -104,12 +102,12 @@ func (m *Scope) ListObjects(ctx context.Context, tenant *schema.Tenant, scope *t
 }
 
 // Delete 删除范围约束
-func (m *Scope) Delete(ctx context.Context, tenant *schema.Tenant, scope *tpl.Target) error {
+func (m *Scope) Delete(ctx context.Context, tenant tpl.Tenant, scope tpl.Target) error {
 	q := fmt.Sprintf(`query {
-		scopeUid as q(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, <%s>))
-		objectUids as objects(func: has(OTAC.O-Scs)) @filter(uid_in(OTAC.O-Scs, uid(scopeUid)))
-		unitsUids as units(func: has(OTAC.U-Scs)) @filter(uid_in(OTAC.U-Scs, uid(scopeUid)))
-	}`, strconv.Quote(scope.ID), strconv.Quote(scope.Type), tenant.ID)
+		scopeUid as var(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, %s))
+		objectUids as var(func: has(OTAC.O-Scs)) @filter(uid_in(OTAC.O-Scs, uid(scopeUid)))
+		unitsUids as var(func: has(OTAC.U-Scs)) @filter(uid_in(OTAC.U-Scs, uid(scopeUid)))
+	}`, util.FormatStr(scope.ID), util.FormatStr(scope.Type), util.FormatUID(tenant.UID))
 	delScope := &dgraph.Nquads{
 		ID: "uid(scopeUid)",
 		KV: map[string]interface{}{
@@ -154,18 +152,18 @@ func (m *Scope) Delete(ctx context.Context, tenant *schema.Tenant, scope *tpl.Ta
 }
 
 // DeleteAll 删除范围约束及范围内的所有 Unit 和 Object
-func (m *Scope) DeleteAll(ctx context.Context, tenant *schema.Tenant, scope *tpl.Target) error {
+func (m *Scope) DeleteAll(ctx context.Context, tenant tpl.Tenant, scope tpl.Target) error {
 	q := fmt.Sprintf(`query {
-		scopeUid as q(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, <%s>))
-		objectUids as objects(func: has(OTAC.O-Scs)) @filter(uid_in(OTAC.O-Scs, uid(scopeUid)))
-		unitsUids as units(func: has(OTAC.U-Scs)) @filter(uid_in(OTAC.U-Scs, uid(scopeUid)))
-		descendantObjectUids as descendantObjects(func: uid(objectUids)) @recurse(loop: false) {
+		scopeUid as var(func: eq(OTAC.ScId, %s), first: 1) @filter(eq(OTAC.ScType, %s) AND uid_in(OTAC.Sc-T, %s))
+		objectUids as var(func: has(OTAC.O-Scs)) @filter(uid_in(OTAC.O-Scs, uid(scopeUid)))
+		unitsUids as var(func: has(OTAC.U-Scs)) @filter(uid_in(OTAC.U-Scs, uid(scopeUid)))
+		descendantObjectUids as var(func: uid(objectUids)) @recurse(loop: false) {
 			~OTAC.O-Os
 		}
-		descendantUnitUids as descendantUnits(func: uid(unitsUids)) @recurse(loop: false) {
+		descendantUnitUids as var(func: uid(unitsUids)) @recurse(loop: false) {
 			~OTAC.U-Us
 		}
-	}`, strconv.Quote(scope.ID), strconv.Quote(scope.Type), tenant.ID)
+	}`, util.FormatStr(scope.ID), util.FormatStr(scope.Type), util.FormatUID(tenant.UID))
 	delScope := &dgraph.Nquads{
 		ID: "uid(scopeUid)",
 		KV: map[string]interface{}{

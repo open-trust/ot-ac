@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/open-trust/ot-ac/src/conf"
+	"github.com/open-trust/ot-ac/src/logging"
 	"github.com/open-trust/ot-ac/src/util"
 
 	"github.com/dgraph-io/dgo/v200"
@@ -36,7 +37,15 @@ type Nquads struct {
 func scalarVal(v interface{}) string {
 	switch val := v.(type) {
 	case string:
-		if val == "*" || val[:1] == "<" || val[:2] == "_:" || val[:4] == "uid(" || val[:4] == "val(" {
+		l := len(val)
+		switch {
+		case val == "*":
+			return val
+		case l > 1 && val[:1] == "<":
+			return val
+		case l > 2 && val[:2] == "_:":
+			return val
+		case l > 4 && (val[:4] == "uid(" || val[:4] == "val("):
 			return val
 		}
 		return strconv.Quote(val)
@@ -87,20 +96,20 @@ func (ns Nquads) Bytes() ([]byte, error) {
 		return nil, errors.New("ID are required")
 	}
 
-	id := ns.ID
-	if id[:1] != "<" && id[:2] != "_:" && id[:4] != "uid(" {
-		id = fmt.Sprintf("<%s>", id)
+	l := len(ns.ID)
+	if ns.ID[:1] != "<" && (l > 2 && ns.ID[:2] != "_:") && (l > 4 && ns.ID[:4] != "uid(") {
+		ns.ID = fmt.Sprintf("<%s>", ns.ID)
 	}
 
 	b := new(bytes.Buffer)
 	if ns.Type != "" {
-		if err := writeNquad(b, id, "dgraph.type", ns.Type); err != nil {
+		if err := writeNquad(b, ns.ID, "dgraph.type", ns.Type); err != nil {
 			return nil, err
 		}
 	}
 
 	for k, v := range ns.KV {
-		if err := writeNquad(b, id, k, v); err != nil {
+		if err := writeNquad(b, ns.ID, k, v); err != nil {
 			return nil, err
 		}
 	}
@@ -138,6 +147,14 @@ func writeNquad(w io.Writer, subject, predicate string, object interface{}) erro
 	case []time.Time:
 		for _, v := range val {
 			_, err = fmt.Fprintf(w, "%s %s \"%s\" .\n", subject, predicate, v.Format(time.RFC3339))
+		}
+	case []WithLang:
+		for _, v := range val {
+			_, err = fmt.Fprintf(w, "%s %s %s .\n", subject, predicate, v.String())
+		}
+	case []WithFacets:
+		for _, v := range val {
+			_, err = fmt.Fprintf(w, "%s %s %s .\n", subject, predicate, v.String())
 		}
 	default:
 		err = fmt.Errorf("invalid value: %#v", object)
@@ -183,8 +200,10 @@ func (dg *Dgraph) CheckHealth(ctx context.Context) (interface{}, error) {
 // Query ...
 func (dg *Dgraph) Query(ctx context.Context, query string, vars map[string]string, out interface{}) error {
 	txn := dg.NewReadOnlyTxn().BestEffort()
-	resp, err := txn.QueryWithVars(ctx, query, vars)
-	if err == nil && out != nil {
+	resp, err := loggingDgraph(ctx, func() (*api.Response, error) {
+		return txn.QueryWithVars(ctx, query, vars)
+	})
+	if err == nil && out != nil && len(resp.Json) > 0 {
 		err = json.Unmarshal(resp.Json, out)
 	}
 	return err
@@ -205,20 +224,46 @@ func (dg *Dgraph) Do(ctx context.Context, query string, vars map[string]string, 
 		Mutations: mus,
 		CommitNow: true,
 	}
-	resp, err := txn.Do(ctx, req)
-	if err == nil && out != nil {
+	resp, err := loggingDgraph(ctx, func() (*api.Response, error) {
+		return txn.Do(ctx, req)
+	})
+	if err == nil && out != nil && len(resp.Json) > 0 {
 		err = json.Unmarshal(resp.Json, out)
 	}
 	return err
 }
 
-// RunTxn ...
-func (dg *Dgraph) RunTxn(ctx context.Context, fn func(txn *dgo.Txn) error) error {
+// DoRaw ...
+func (dg *Dgraph) DoRaw(ctx context.Context, query string, vars map[string]string, mus ...*api.Mutation) (*api.Response, error) {
+	if len(mus) == 0 {
+		txn := dg.NewReadOnlyTxn().BestEffort()
+		return txn.QueryWithVars(ctx, query, vars)
+	}
+
 	txn := dg.NewTxn()
 	defer txn.Discard(ctx)
-	err := fn(txn)
-	if err == nil {
-		err = txn.Commit(ctx)
+
+	req := &api.Request{
+		Query:     query,
+		Vars:      vars,
+		Mutations: mus,
+		CommitNow: true,
 	}
-	return err
+
+	return loggingDgraph(ctx, func() (*api.Response, error) {
+		return txn.Do(ctx, req)
+	})
+}
+
+func loggingDgraph(ctx context.Context, fn func() (*api.Response, error)) (*api.Response, error) {
+	startT := time.Now()
+	resp, err := fn()
+	end := time.Now().Sub(startT) / 1000000
+	if end > 10 {
+		logging.SetKV(ctx, "dgraphClientLatency", end)
+		if resp != nil {
+			logging.SetKV(ctx, "dgraphInternalLatency", resp.Latency.TotalNs/1000000)
+		}
+	}
+	return resp, err
 }

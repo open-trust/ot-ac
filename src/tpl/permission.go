@@ -1,14 +1,52 @@
 package tpl
 
-import "github.com/teambition/gear"
+import (
+	"github.com/teambition/gear"
+)
 
-// BatchAddPermissionsInput ...
-type BatchAddPermissionsInput struct {
+// Permission ...
+type Permission struct {
+	UID        string `json:"uid,omitempty"`
+	Permission string `json:"permission"`
+}
+
+// GetPermissionUID ...
+func GetPermissionUID(ps []Permission, p string) string {
+	for _, v := range ps {
+		if v.Permission == p {
+			return v.UID
+		}
+	}
+	return ""
+}
+
+// PermissionEx ...
+type PermissionEx struct {
+	Permission string     `json:"permission"`
+	Extensions Extensions `json:"extensions"`
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *PermissionEx) Validate() error {
+	if err := CheckPermission(t.Permission); err != nil {
+		return err
+	}
+	if len(t.Extensions) > 10 {
+		return gear.ErrBadRequest.WithMsgf("too many extensions: %d", len(t.Extensions))
+	}
+	if err := t.Extensions.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// PermissionBatchAddInput ...
+type PermissionBatchAddInput struct {
 	Permissions []string `json:"permissions"`
 }
 
 // Validate 实现 gear.BodyTemplate
-func (t *BatchAddPermissionsInput) Validate() error {
+func (t *PermissionBatchAddInput) Validate() error {
 	// OTID UnmarshalText method will validate
 	if len(t.Permissions) == 0 {
 		return gear.ErrBadRequest.WithMsg("empty permissions")
@@ -21,14 +59,14 @@ func (t *BatchAddPermissionsInput) Validate() error {
 	return nil
 }
 
-// ListPermissionsInput ...
-type ListPermissionsInput struct {
+// PermissionListInput ...
+type PermissionListInput struct {
 	Pagination
 	ResourcesInput
 }
 
 // Validate 实现 gear.BodyTemplate
-func (t *ListPermissionsInput) Validate() error {
+func (t *PermissionListInput) Validate() error {
 	if err := t.Pagination.Validate(); err != nil {
 		return err
 	}
@@ -38,13 +76,13 @@ func (t *ListPermissionsInput) Validate() error {
 	return nil
 }
 
-// DeletePermissionInput ...
-type DeletePermissionInput struct {
+// PermissionDeleteInput ...
+type PermissionDeleteInput struct {
 	Permission string `json:"permission"`
 }
 
 // Validate 实现 gear.BodyTemplate
-func (t *DeletePermissionInput) Validate() error {
+func (t *PermissionDeleteInput) Validate() error {
 	if err := CheckPermission(t.Permission); err != nil {
 		return err
 	}

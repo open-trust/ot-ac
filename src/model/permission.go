@@ -3,12 +3,11 @@ package model
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/dgraph-io/dgo/v200/protos/api"
-	"github.com/open-trust/ot-ac/src/schema"
 	"github.com/open-trust/ot-ac/src/service/dgraph"
+	"github.com/open-trust/ot-ac/src/tpl"
 	"github.com/open-trust/ot-ac/src/util"
 )
 
@@ -18,42 +17,43 @@ type Permission struct {
 }
 
 // BatchAdd ...
-func (m *Permission) BatchAdd(ctx context.Context, tenant *schema.Tenant, permissions []string) error {
+func (m *Permission) BatchAdd(ctx context.Context, tenant tpl.Tenant, permissions []string) error {
 	nqs := make([]*dgraph.Nquads, 0, len(permissions))
 
 	for _, p := range permissions {
 		nqs = append(nqs, &dgraph.Nquads{
 			UKkey: "OTAC.P.UK",
-			UKval: util.HashBase64(tenant.OTID, p),
+			UKval: util.HashBase64(tenant.Tenant, p),
 			Type:  "OTACPermission",
 			KV: map[string]interface{}{
-				"OTAC.P-T": fmt.Sprintf("<%s>", tenant.ID),
+				"OTAC.P-T": util.FormatUID(tenant.UID),
 				"OTAC.P":   p,
 			},
 		})
 	}
 
-	return m.Model.BatchAdd(ctx, nqs)
+	_, err := m.Model.BatchAdd(ctx, nqs)
+	return err
 }
 
 // List ...
-func (m *Permission) List(ctx context.Context, tenant *schema.Tenant, resources []string, pageSize, skip int, uidToken string) (
-	[]*schema.Permission, error) {
+func (m *Permission) List(ctx context.Context, tenant tpl.Tenant, resources []string, pageSize, skip int, uidToken string) (
+	[]*tpl.Permission, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.P-T), first: %d, offset: %d, after: <%s>) @filter(uid_in(OTAC.P-T, <%s>)) {
-			id: uid
+		result(func: has(OTAC.P-T), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s)) {
+			uid
 			permission: OTAC.P
 		}
-	}`, pageSize, skip, uidToken, tenant.ID)
+	}`, pageSize, skip, util.FormatUID(uidToken), util.FormatUID(tenant.UID))
 	if len(resources) > 0 {
 		q = fmt.Sprintf(`query {
-			result(func: has(OTAC.P-T), first: %d, offset: %d, after: <%s>) @filter(uid_in(OTAC.P-T, <%s>) AND regexp(OTAC.P, /^(%s)/)) {
-				id: uid
+			result(func: has(OTAC.P-T), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s) AND regexp(OTAC.P, /^(%s)/)) {
+				uid
 				permission: OTAC.P
 			}
-		}`, pageSize, skip, uidToken, tenant.ID, strings.Join(resources, "|"))
+		}`, pageSize, skip, util.FormatUID(uidToken), util.FormatUID(tenant.UID), strings.Join(resources, "|"))
 	}
-	res := make([]*schema.Permission, 0, pageSize)
+	res := make([]*tpl.Permission, 0, pageSize)
 	if err := m.Model.List(ctx, q, nil, &res); err != nil {
 		return nil, err
 	}
@@ -61,12 +61,12 @@ func (m *Permission) List(ctx context.Context, tenant *schema.Tenant, resources 
 }
 
 // Delete ...
-func (m *Permission) Delete(ctx context.Context, tenant *schema.Tenant, permission string) error {
+func (m *Permission) Delete(ctx context.Context, tenant tpl.Tenant, permission string) error {
 	q := fmt.Sprintf(`query {
-		permissionUid as result(func: eq(OTAC.P, %s)) @filter(uid_in(OTAC.P-T, <%s>))
-		objectUids as objects(func: has(OTAC.O-Ps)) @filter(uid_in(OTAC.O-Ps, uid(permissionUid)))
-		unitsUids as units(func: has(OTAC.U-Ps)) @filter(uid_in(OTAC.U-Ps, uid(permissionUid)))
-	}`, strconv.Quote(permission), tenant.ID)
+		permissionUid as var(func: eq(OTAC.P, %s)) @filter(uid_in(OTAC.P-T, %s))
+		objectUids as var(func: has(OTAC.O-Ps)) @filter(uid_in(OTAC.O-Ps, uid(permissionUid)))
+		unitsUids as var(func: has(OTAC.U-Ps)) @filter(uid_in(OTAC.U-Ps, uid(permissionUid)))
+	}`, util.FormatStr(permission), util.FormatUID(tenant.UID))
 	delPermission := &dgraph.Nquads{
 		ID: "uid(permissionUid)",
 		KV: map[string]interface{}{
