@@ -1,11 +1,11 @@
 .PHONY: dev test doc
 
-APP_NAME := ot-auth
+APP_NAME := ot-ac
 APP_PATH := github.com/open-trust/ot-ac
 APP_VERSION := $(shell git describe --tags --always --match "v[0-9]*")
 
 dev:
-	@CONFIG_FILE_PATH=${PWD}/config/default.yaml APP_ENV=development go run main.go
+	@CONFIG_FILE_PATH=${PWD}/config/local.yaml APP_ENV=development go run main.go
 
 test:
 	@CONFIG_FILE_PATH=${PWD}/config/test.yaml APP_ENV=testing go test -v ./...
@@ -42,7 +42,7 @@ coverhtml:
 	@go tool cover -html=coverage/cover.out -o coverage/coverage.html
 	@go tool cover -func=coverage/cover.out | tail -n 1
 
-IMAGE_TAG := ${APP_NAME}:latest
+IMAGE_TAG := ot/${APP_NAME}:latest
 .PHONY: image oci-image
 image:
 	docker build --rm -t ${IMAGE_TAG} .

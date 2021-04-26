@@ -51,7 +51,11 @@ func (t *PermissionBatchAddInput) Validate() error {
 	if len(t.Permissions) == 0 {
 		return gear.ErrBadRequest.WithMsg("empty permissions")
 	}
+	cr := make(checkRepetitive)
 	for _, permission := range t.Permissions {
+		if err := cr.Check(permission); err != nil {
+			return err
+		}
 		if err := CheckPermission(permission); err != nil {
 			return err
 		}

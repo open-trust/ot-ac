@@ -339,7 +339,7 @@ func (m *Model) Get(ctx context.Context, query string, vars map[string]string, o
 // List ...
 func (m *Model) List(ctx context.Context, query string, vars map[string]string, slice interface{}) error {
 	out := &otgo.Response{Result: slice}
-	return m.Query(ctx, query, vars, out)
+	return m.QueryBestEffort(ctx, query, vars, out)
 }
 
 type jsonUnitObjectScope struct {

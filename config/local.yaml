@@ -8,7 +8,7 @@ service_endpoints:
 - http://ot.example.com/ac
 dgraph:
   insecure: true
-  grpc_endpoint: dgraph-public.dgraph:9080
+  grpc_endpoint: dgraph-grpc.teambition.test:80
 open_trust:
   otid: "otid:ot.example.com:svc:ot.ac"
   domain_public_keys:

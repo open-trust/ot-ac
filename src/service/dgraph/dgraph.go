@@ -171,7 +171,7 @@ type Dgraph struct {
 // NewDgraph ...
 func NewDgraph() (*Dgraph, error) {
 	opts := []grpc.DialOption{
-		grpc.WithTimeout(time.Second * 3),
+		grpc.WithTimeout(time.Second * 5),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 	}
 	if conf.Config.Dgraph.Insecure {
@@ -199,6 +199,18 @@ func (dg *Dgraph) CheckHealth(ctx context.Context) (interface{}, error) {
 
 // Query ...
 func (dg *Dgraph) Query(ctx context.Context, query string, vars map[string]string, out interface{}) error {
+	txn := dg.NewReadOnlyTxn()
+	resp, err := loggingDgraph(ctx, func() (*api.Response, error) {
+		return txn.QueryWithVars(ctx, query, vars)
+	})
+	if err == nil && out != nil && len(resp.Json) > 0 {
+		err = json.Unmarshal(resp.Json, out)
+	}
+	return err
+}
+
+// QueryBestEffort ...
+func (dg *Dgraph) QueryBestEffort(ctx context.Context, query string, vars map[string]string, out interface{}) error {
 	txn := dg.NewReadOnlyTxn().BestEffort()
 	resp, err := loggingDgraph(ctx, func() (*api.Response, error) {
 		return txn.QueryWithVars(ctx, query, vars)

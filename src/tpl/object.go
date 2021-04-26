@@ -27,7 +27,11 @@ func (t *ObjectAddPermissionsInput) Validate() error {
 	if len(t.Permissions) > 100 {
 		return gear.ErrBadRequest.WithMsgf("too many permissions: %d", len(t.Permissions))
 	}
+	cr := make(checkRepetitive)
 	for _, p := range t.Permissions {
+		if err := cr.Check(p); err != nil {
+			return err
+		}
 		if err := CheckPermission(p); err != nil {
 			return err
 		}

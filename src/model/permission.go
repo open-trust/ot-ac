@@ -40,14 +40,14 @@ func (m *Permission) BatchAdd(ctx context.Context, tenant tpl.Tenant, permission
 func (m *Permission) List(ctx context.Context, tenant tpl.Tenant, resources []string, pageSize, skip int, uidToken string) (
 	[]*tpl.Permission, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.P-T), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s)) {
+		result(func: eq(dgraph.type, "OTACPermission"), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s)) {
 			uid
 			permission: OTAC.P
 		}
 	}`, pageSize, skip, util.FormatUID(uidToken), util.FormatUID(tenant.UID))
 	if len(resources) > 0 {
 		q = fmt.Sprintf(`query {
-			result(func: has(OTAC.P-T), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s) AND regexp(OTAC.P, /^(%s)/)) {
+			result(func: eq(dgraph.type, "OTACPermission"), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.P-T, %s) AND regexp(OTAC.P, /^(%s)/)) {
 				uid
 				permission: OTAC.P
 			}

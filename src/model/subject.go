@@ -18,7 +18,7 @@ type Subject struct {
 // List ...
 func (m *Subject) List(ctx context.Context, pageSize, skip int, uidToken string) ([]tpl.Subject, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.Sub), first: %d, offset: %d, after: %s) {
+		result(func: eq(dgraph.type, "OTACSubject"), first: %d, offset: %d, after: %s) {
 			uid
 			status: OTAC.status
 			subject: OTAC.Sub

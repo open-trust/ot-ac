@@ -48,8 +48,16 @@ func (b *Organization) ListOrgs(ctx context.Context, pg tpl.Pagination) (*tpl.Su
 }
 
 // ListSubjectOrgs ...
-func (b *Organization) ListSubjectOrgs(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListSubjectOrgs(ctx context.Context, subject string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListSubjectOrgs(ctx, subject, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // AddOU ...
@@ -86,18 +94,42 @@ func (b *Organization) DeleteOU(ctx context.Context, org string, ex tpl.Extensio
 }
 
 // ListOUs ...
-func (b *Organization) ListOUs(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListOUs(ctx context.Context, org, parent string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListOUs(ctx, org, parent, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // ListSubjectOUs ...
-func (b *Organization) ListSubjectOUs(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListSubjectOUs(ctx context.Context, subject, org string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListSubjectOUs(ctx, subject, org, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // SearchOUs ...
-func (b *Organization) SearchOUs(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) SearchOUs(ctx context.Context, org, term string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.SearchOUs(ctx, org, term, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // BatchAddMember ...
@@ -137,13 +169,29 @@ func (b *Organization) RemoveMember(ctx context.Context, org string, ex tpl.Exte
 }
 
 // ListMembers ...
-func (b *Organization) ListMembers(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListMembers(ctx context.Context, org string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListMembers(ctx, org, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // SearchMember ...
-func (b *Organization) SearchMember(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) SearchMember(ctx context.Context, org, term string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.SearchMember(ctx, org, term, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // BatchAddOUMember ...
@@ -160,11 +208,27 @@ func (b *Organization) RemoveOUMember(ctx context.Context, org string, ex tpl.Ex
 }
 
 // ListOUMembers ...
-func (b *Organization) ListOUMembers(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListOUMembers(ctx context.Context, org, ou string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListOUMembers(ctx, org, ou, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }
 
 // ListOUDescendantMembers ...
-func (b *Organization) ListOUDescendantMembers(ctx context.Context, org string, ex tpl.Extensions) (*tpl.SuccessResponseType, error) {
-	return nil, nil
+func (b *Organization) ListOUDescendantMembers(ctx context.Context, org, ou string, pg tpl.Pagination) (*tpl.SuccessResponseType, error) {
+	data, err := b.ms.Organization.ListOUDescendantMembers(ctx, org, ou, pg.PageSize, pg.Skip, pg.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	res := &tpl.SuccessResponseType{Result: data, NextToken: ""}
+	if len(data) >= pg.PageSize {
+		res.NextToken = data[len(data)-1].UID
+	}
+	return res, nil
 }

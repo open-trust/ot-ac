@@ -60,7 +60,15 @@ func (a *Organization) ListOrgs(ctx *gear.Context) error {
 
 // ListSubjectOrgs ...
 func (a *Organization) ListSubjectOrgs(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListSubjectOrgsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListSubjectOrgs(ctx, input.Subject, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // AddOU ...
@@ -108,17 +116,41 @@ func (a *Organization) DeleteOU(ctx *gear.Context) error {
 
 // ListOUs ...
 func (a *Organization) ListOUs(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListOUsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListOUs(ctx, input.Org, input.Parent, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // ListSubjectOUs ...
 func (a *Organization) ListSubjectOUs(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListSubjectOUsInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListSubjectOUs(ctx, input.Subject, input.Org, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // SearchOUs ...
 func (a *Organization) SearchOUs(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationSearchInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.SearchOUs(ctx, input.Org, input.Term, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // BatchAddMember ...
@@ -152,12 +184,28 @@ func (a *Organization) RemoveMember(ctx *gear.Context) error {
 
 // ListMembers ...
 func (a *Organization) ListMembers(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListMembers(ctx, input.Org, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // SearchMember ...
 func (a *Organization) SearchMember(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationSearchInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.SearchMember(ctx, input.Org, input.Term, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // BatchAddOUMember ...
@@ -181,10 +229,26 @@ func (a *Organization) RemoveOUMember(ctx *gear.Context) error {
 
 // ListOUMembers ...
 func (a *Organization) ListOUMembers(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListOUMembersInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListOUMembers(ctx, input.Org, input.OU, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }
 
 // ListOUDescendantMembers ...
 func (a *Organization) ListOUDescendantMembers(ctx *gear.Context) error {
-	return nil
+	input := tpl.OrganizationListOUMembersInput{}
+	if err := ctx.ParseBody(&input); err != nil {
+		return err
+	}
+	res, err := a.blls.Organization.ListOUDescendantMembers(ctx, input.Org, input.OU, input.Pagination)
+	if err != nil {
+		return err
+	}
+	return ctx.OkJSON(res)
 }

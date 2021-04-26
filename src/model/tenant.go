@@ -35,7 +35,7 @@ func (m *Tenant) Get(ctx context.Context, tenant otgo.OTID) (*tpl.Tenant, error)
 // List ...
 func (m *Tenant) List(ctx context.Context, pageSize, skip int, uidToken string) ([]tpl.Tenant, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.T), first: %d, offset: %d, after: %s) {
+		result(func: eq(dgraph.type, "OTACTenant"), first: %d, offset: %d, after: %s) {
 			uid
 			tenant: OTAC.T
 			status: OTAC.status

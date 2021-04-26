@@ -40,8 +40,8 @@ func (pg *Pagination) Validate() error {
 		pg.Skip = 0
 	}
 
-	if pg.PageSize > 10000 {
-		return gear.ErrBadRequest.WithMsgf("pageSize %v should not great than 10000", pg.PageSize)
+	if pg.PageSize > 1000 {
+		return gear.ErrBadRequest.WithMsgf("pageSize %v should not great than 1000", pg.PageSize)
 	}
 
 	if pg.PageSize <= 0 {
@@ -182,10 +182,14 @@ func (t *TargetBatchAddInput) Validate() error {
 	if len(t.Targets) == 0 {
 		return gear.ErrBadRequest.WithMsgf("targets empty")
 	}
-	if len(t.Targets) > 10000 {
+	if len(t.Targets) > 1000 {
 		return gear.ErrBadRequest.WithMsgf("too many targets: %d", len(t.Targets))
 	}
+	cr := make(checkRepetitive)
 	for _, target := range t.Targets {
+		if err := cr.Check(target.Type + target.ID); err != nil {
+			return err
+		}
 		if err := target.Validate(); err != nil {
 			return err
 		}
@@ -213,13 +217,27 @@ func (t *SubjectsInput) Validate() error {
 	if len(t.Subjects) == 0 {
 		return gear.ErrBadRequest.WithMsg("empty subjects")
 	}
-	if len(t.Subjects) > 10000 {
+	if len(t.Subjects) > 1000 {
 		return gear.ErrBadRequest.WithMsgf("too many subjects: %d", len(t.Subjects))
 	}
+	cr := make(checkRepetitive)
 	for _, v := range t.Subjects {
+		if err := cr.Check(v); err != nil {
+			return err
+		}
 		if err := CheckSubject(v); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+type checkRepetitive map[string]interface{}
+
+func (c checkRepetitive) Check(s string) error {
+	if _, ok := c[s]; ok {
+		return gear.ErrBadRequest.WithMsgf("%s is repeated", s)
+	}
+	c[s] = struct{}{}
 	return nil
 }

@@ -51,7 +51,7 @@ func (m *Organization) DeleteOrg(ctx context.Context, org string) error {
 // ListOrgs ...
 func (m *Organization) ListOrgs(ctx context.Context, pageSize, skip int, uidToken string) ([]tpl.Organization, error) {
 	q := fmt.Sprintf(`query {
-		result(func: has(OTAC.Org), first: %d, offset: %d, after: %s) {
+		result(func: eq(dgraph.type, "OTACOrg"), first: %d, offset: %d, after: %s) {
 			uid
 			organization: OTAC.Org
 			status: OTAC.status
@@ -65,8 +65,24 @@ func (m *Organization) ListOrgs(ctx context.Context, pageSize, skip int, uidToke
 }
 
 // ListSubjectOrgs ...
-func (m *Organization) ListSubjectOrgs(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListSubjectOrgs(ctx context.Context, subject string, pageSize, skip int, uidToken string) ([]tpl.Organization, error) {
+	q := fmt.Sprintf(`query {
+		var(func: eq(OTAC.Sub, %s), first: 1) @filter(ge(OTAC.status, %d)) {
+			~OTAC.M-S @filter(ge(OTAC.status, %d)) {
+				orgUIDs as OTAC.M-Org @filter(ge(OTAC.status, %d))
+			}
+		}
+		result(func: uid(orgUIDs), first: %d, offset: %d, after: %s) {
+			uid
+			organization: OTAC.Org
+			status: OTAC.status
+		}
+	}`, util.FormatStr(subject), 0, 0, 0, pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Organization, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // AddOU ...
@@ -139,18 +155,88 @@ func (m *Organization) DeleteOU(ctx context.Context, org string) error {
 }
 
 // ListOUs ...
-func (m *Organization) ListOUs(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListOUs(ctx context.Context, org, parent string, pageSize, skip int, uidToken string) ([]tpl.OU, error) {
+	q := ""
+	if parent == "" {
+		q = fmt.Sprintf(`query {
+			var(func: eq(OTAC.Org, %s), first: 1) {
+				orgUID as uid
+			}
+			result(func: eq(dgraph.type, "OTACOU"), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.OU-Org, uid(orgUID)) AND NOT has(OTAC.OU-OU)) @normalize {
+				uid: uid
+				ou: OTAC.OU
+				status: OTAC.status
+			}
+		}`, util.FormatStr(org), pageSize, skip, util.FormatUID(uidToken))
+	} else {
+		uk := util.HashBase64(org, parent)
+		q = fmt.Sprintf(`query {
+			result(func: eq(OTAC.OU.UK, %s), first: 1) @normalize {
+				~OTAC.OU-OU (first: %d, offset: %d, after: %s) {
+					uid: uid
+					ou: OTAC.OU
+					status: OTAC.status
+					OTAC.OU-OU {
+						parent: OTAC.OU
+					}
+				}
+			}
+		}`, util.FormatStr(uk), pageSize, skip, util.FormatUID(uidToken))
+	}
+	res := make([]tpl.OU, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ListSubjectOUs ...
-func (m *Organization) ListSubjectOUs(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListSubjectOUs(ctx context.Context, subject, org string, pageSize, skip int, uidToken string) ([]tpl.OU, error) {
+	q := fmt.Sprintf(`query {
+		var(func: eq(OTAC.Org, %s), first: 1) @filter(ge(OTAC.status, %d)) {
+			orgUID as uid
+		}
+		var(func: eq(OTAC.Sub, %s), first: 1) @filter(ge(OTAC.status, %d)) {
+			~OTAC.M-S @filter(uid_in(OTAC.M-Org, uid(orgUID)) AND ge(OTAC.status, %d)) {
+				ouUIDs as ~OTAC.OU-Ms @filter(ge(OTAC.status, %d))
+			}
+		}
+		result(func: uid(ouUIDs), first: %d, offset: %d, after: %s) @normalize {
+			uid: uid
+			ou: OTAC.OU
+			status: OTAC.status
+			OTAC.OU-OU {
+				parent: OTAC.OU
+			}
+		}
+	}`, util.FormatStr(org), 0, util.FormatStr(subject), 0, 0, 0, pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.OU, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // SearchOUs ...
-func (m *Organization) SearchOUs(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) SearchOUs(ctx context.Context, org, term string, pageSize, skip int, uidToken string) ([]tpl.OU, error) {
+	q := fmt.Sprintf(`query {
+		var(func: eq(OTAC.Org, %s), first: 1) {
+			orgUID as uid
+		}
+		result(func: eq(dgraph.type, "OTACOU"), first: %d, offset: %d, after: %s) @filter(uid_in(OTAC.OU-Org, uid(orgUID)) AND allofterms(OTAC.OU.terms, %s)) @normalize {
+			uid: uid
+			ou: OTAC.OU
+			status: OTAC.status
+			OTAC.OU-OU {
+				parent: OTAC.OU
+			}
+		}
+	}`, util.FormatStr(org), pageSize, skip, util.FormatUID(uidToken), util.FormatStr(term))
+	res := make([]tpl.OU, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // BatchAddMember ...
@@ -198,13 +284,43 @@ func (m *Organization) RemoveMember(ctx context.Context, org string) error {
 }
 
 // ListMembers ...
-func (m *Organization) ListMembers(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListMembers(ctx context.Context, org string, pageSize, skip int, uidToken string) ([]tpl.Member, error) {
+	q := fmt.Sprintf(`query {
+		result(func: eq(OTAC.Org, %s), first: 1) @normalize {
+			~OTAC.M-Org (first: %d, offset: %d, after: %s) {
+				uid: uid
+				status: OTAC.status
+				OTAC.M-S {
+					subject: OTAC.Sub
+				}
+			}
+		}
+	}`, util.FormatStr(org), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Member, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // SearchMember ...
-func (m *Organization) SearchMember(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) SearchMember(ctx context.Context, org, term string, pageSize, skip int, uidToken string) ([]tpl.Member, error) {
+	q := fmt.Sprintf(`query {
+		result(func: eq(OTAC.Org, %s), first: 1) @normalize {
+			~OTAC.M-Org @filter(allofterms(OTAC.M.terms, %s)) (first: %d, offset: %d, after: %s) {
+				uid: uid
+				status: OTAC.status
+				OTAC.M-S {
+					subject: OTAC.Sub
+				}
+			}
+		}
+	}`, util.FormatStr(org), util.FormatStr(term), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Member, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // BatchAddOUMember ...
@@ -235,11 +351,48 @@ func (m *Organization) RemoveOUMember(ctx context.Context, org string) error {
 }
 
 // ListOUMembers ...
-func (m *Organization) ListOUMembers(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListOUMembers(ctx context.Context, org, ou string, pageSize, skip int, uidToken string) ([]tpl.Member, error) {
+	uk := util.HashBase64(org, ou)
+	q := fmt.Sprintf(`query {
+		result(func: eq(OTAC.OU.UK, %s), first: 1) @normalize {
+			OTAC.OU-Ms (first: %d, offset: %d, after: %s) {
+				uid: uid
+				status: OTAC.status
+				OTAC.M-S {
+					subject: OTAC.Sub
+				}
+			}
+		}
+	}`, util.FormatStr(uk), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Member, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ListOUDescendantMembers ...
-func (m *Organization) ListOUDescendantMembers(ctx context.Context, org string) error {
-	return nil
+func (m *Organization) ListOUDescendantMembers(ctx context.Context, org, ou string, pageSize, skip int, uidToken string) ([]tpl.Member, error) {
+	uk := util.HashBase64(org, ou)
+	q := fmt.Sprintf(`query {
+		var(func: eq(OTAC.OU.UK, %s), first: 1) @recurse(loop: false) {
+			ouUIDs as uid
+			~OTAC.OU-OU
+		}
+		var(func: uid(ouUIDs)) {
+			mUIDs as OTAC.OU-Ms
+		 }
+		result(func: uid(mUIDs), first: %d, offset: %d, after: %s) @normalize {
+			uid: uid
+			status: OTAC.status
+			OTAC.M-S {
+				subject: OTAC.Sub
+			}
+		}
+	}`, util.FormatStr(uk), pageSize, skip, util.FormatUID(uidToken))
+	res := make([]tpl.Member, 0, pageSize)
+	if err := m.Model.List(ctx, q, nil, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

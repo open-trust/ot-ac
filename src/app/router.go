@@ -28,6 +28,7 @@ func NewRouters(apis *api.APIs) []*gear.Router {
 	router.Get("/version", getVersion)
 	router.Get("/livez", apis.Healthz.Check)
 	router.Get("/readyz", apis.Healthz.Check)
+	router.Get("/healthz", apis.Healthz.Check)
 
 	router.Post("/AC/CheckUnit", middleware.VerifyTenant, apis.AC.CheckUnit)
 	router.Post("/AC/CheckScope", middleware.VerifyTenant, apis.AC.CheckScope)

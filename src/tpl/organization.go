@@ -14,7 +14,6 @@ type Organization struct {
 // OU ...
 type OU struct {
 	UID    string `json:"uid,omitempty"`
-	Org    string `json:"organization"`
 	OU     string `json:"ou"`
 	Parent string `json:"parent,omitempty"`
 	Status int    `json:"status"`
@@ -23,7 +22,6 @@ type OU struct {
 // Member ...
 type Member struct {
 	UID     string `json:"uid,omitempty"`
-	Org     string `json:"organization"`
 	Subject string `json:"subject"`
 	Status  int    `json:"status"`
 }
@@ -142,10 +140,14 @@ func (t *OrganizationBatchAddMemberInput) Validate() error {
 	if len(t.Subjects) == 0 {
 		return gear.ErrBadRequest.WithMsg("empty subjects")
 	}
-	if len(t.Subjects) > 10000 {
+	if len(t.Subjects) > 1000 {
 		return gear.ErrBadRequest.WithMsgf("too many subjects: %d", len(t.Subjects))
 	}
+	cr := make(checkRepetitive)
 	for _, v := range t.Subjects {
+		if err := cr.Check(v.Sub); err != nil {
+			return err
+		}
 		if err := CheckSubject(v.Sub); err != nil {
 			return err
 		}
@@ -187,6 +189,122 @@ func (t *OrganizationBatchAddOUMemberInput) Validate() error {
 		return err
 	}
 	if err := t.SubjectsInput.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// OrganizationListInput ...
+type OrganizationListInput struct {
+	OrganizationInput
+	Pagination
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationListInput) Validate() error {
+	if err := t.OrganizationInput.Validate(); err != nil {
+		return err
+	}
+	if err := t.Pagination.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// OrganizationSearchInput ...
+type OrganizationSearchInput struct {
+	OrganizationInput
+	Pagination
+	Term string `json:"term"`
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationSearchInput) Validate() error {
+	if err := t.OrganizationInput.Validate(); err != nil {
+		return err
+	}
+	if len(t.Term) < 3 {
+		return gear.ErrBadRequest.WithMsgf("term' length too small %d", len(t.Term))
+	}
+	if err := t.Pagination.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// OrganizationListSubjectOrgsInput ...
+type OrganizationListSubjectOrgsInput struct {
+	Pagination
+	Subject string `json:"subject"`
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationListSubjectOrgsInput) Validate() error {
+	if err := CheckSubject(t.Subject); err != nil {
+		return err
+	}
+	if err := t.Pagination.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// OrganizationListSubjectOUsInput ...
+type OrganizationListSubjectOUsInput struct {
+	OrganizationListSubjectOrgsInput
+	OrganizationInput
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationListSubjectOUsInput) Validate() error {
+	if err := t.OrganizationListSubjectOrgsInput.Validate(); err != nil {
+		return err
+	}
+	if err := t.OrganizationInput.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// OrganizationListOUsInput ...
+type OrganizationListOUsInput struct {
+	OrganizationInput
+	Pagination
+	Parent string `json:"parent"`
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationListOUsInput) Validate() error {
+	if err := t.OrganizationInput.Validate(); err != nil {
+		return err
+	}
+	if err := t.Pagination.Validate(); err != nil {
+		return err
+	}
+	if t.Parent != "" {
+		if err := CheckSubject(t.Parent); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// OrganizationListOUMembersInput ...
+type OrganizationListOUMembersInput struct {
+	OrganizationInput
+	Pagination
+	OU string `json:"ou"`
+}
+
+// Validate 实现 gear.BodyTemplate
+func (t *OrganizationListOUMembersInput) Validate() error {
+	if err := t.OrganizationInput.Validate(); err != nil {
+		return err
+	}
+	if err := t.Pagination.Validate(); err != nil {
+		return err
+	}
+	if err := CheckSubject(t.OU); err != nil {
 		return err
 	}
 	return nil
